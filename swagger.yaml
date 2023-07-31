@@ -1,0 +1,133 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: DNS API
+  description: API for DNS lookups
+servers:
+  - url: http://localhost:8080
+paths:
+  /v1/FQDNToIP:
+    post:
+      summary: Get IP addresses from FQDNs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: Successful response with IP addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+        '400':
+          description: Bad request with error message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /v1/IPToFQDN:
+    post:
+      summary: Get FQDNs from IP addresses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: Successful response with FQDNs
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+        '400':
+          description: Bad request with error message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /v1/whoishere:
+    post:
+      summary: Get WHOIS data for second-level domains (SLDs)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+      responses:
+        '200':
+          description: Successful response with WHOIS data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  oneOf:
+                    - type: object
+                      properties:
+                        Domain:
+                          $ref: '#/components/schemas/Domain'
+                    - type: object
+                      properties:
+                        Error:
+                          type: string
+        '400':
+          description: Bad request with error message
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+components:
+  schemas:
+    Domain:
+      type: object
+      properties:
+        DomainName:
+          type: string
+        CreatedDate:
+          type: string
+        UpdatedDate:
+          type: string
+        ExpiryDate:
+          type: string
+        Registrar:
+          type: string
+        Status:
+          type: string
+        NameServers:
+          type: array
+          items:
+            type: string
+        RawText:
+          type: string
