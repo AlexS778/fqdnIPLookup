@@ -29,12 +29,15 @@ func main() {
 		log.Fatal("No database connection string, set it as env variable: export connStr=")
 	}
 	waitTime := os.Getenv("waitTime")
+	if waitTime == "" {
+		log.Fatal("Specify wait time for querying dns servers every x seconds")
+	}
 	dbHanlder := db.InitDBContext(connStr)
 	router := gin.Default()
 	dnsapi.RegiserV1Routes(router, dbHanlder)
 	timeDuration, err := time.ParseDuration(waitTime)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	go dnsapi.ContinuousUpdate(dbHanlder, timeDuration)
 	router.Use(cors.New(cors.Config{

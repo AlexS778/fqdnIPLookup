@@ -4,18 +4,16 @@ go 1.20
 
 require (
 	github.com/bobesa/go-domain-util v0.0.0-20190911083921-4033b5f7dd89
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/likexian/whois v1.15.0
 	github.com/likexian/whois-parser v1.24.8
 )
 
 require (
-	github.com/ellcrys/cocoon v0.0.0-20180126095938-7b2e207ad95e // indirect
-	github.com/gin-contrib/cors v1.4.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.3.1 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 )
 
