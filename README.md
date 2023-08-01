@@ -1,21 +1,17 @@
 # fqdnIPLookup
 Для запуска:
 
-бд:
-- docker run --name fqdnIPLookup-postgres -e POSTGRES_PASSWORD=mypass -d postgres
+```
+cd docker
+docker-compose build
+docker-compose up
+```
+для сваггера:
+```
+docker pull swaggerapi/swagger-ui
+sudo docker run -p 90:8080 -e SWAGGER_JSON=/foo/swagger.json -v .:/foo swaggerapi/swagger-ui
+```
 
-env variable для дб:
-- export connStr="host=localhost user=postgres password=mypass dbname=postgres port=5432 sslmode=disable TimeZone=Asia/Shanghai"
-
-сервер имеет функцию раз в заданный интервал ( из конфига) обновлять текущую базу адресов из внешних dns серверов, 
-для этого нужно указать:
-- export waitTime="120s"
-
-сервер имеет следующий функционал:
-с флагом port можно указать порт запуска сервера
-
-
-~/fqdnIPLookup/cmd/server go run . -port 9090
 
 для теста можно послать запросы через curl:
 
@@ -52,14 +48,5 @@ curl -X 'POST' \
 ]'
 ```
 
-или воспользватся сваггером:
-```
-docker pull swaggerapi/swagger-ui
-docker run -p 80:8080 -e SWAGGER_JSON=/foo/swagger.json -v .:/foo swaggerapi/swagger-ui         
-```
-
-запустит swagger ui на "http://localhost:80" 
-
-swagger ui будет считать что сервер всегда будет запущен на "http://localhost:8080" 
 
 если вы запустили сервер на другом порте, вам нужно поменять это значние в swagger.json
