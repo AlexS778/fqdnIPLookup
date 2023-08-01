@@ -5,7 +5,7 @@
 docker-compose build
 docker-compose up
 ```
-для сваггера:
+для запуска сваггера на "http://localhost:90":
 ```
 docker pull swaggerapi/swagger-ui
 sudo docker run -p 90:8080 -e SWAGGER_JSON=/foo/swagger.json -v .:/foo swaggerapi/swagger-ui
