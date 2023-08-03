@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -32,6 +33,8 @@ func main() {
 	if waitTime == "" {
 		log.Fatal("Specify wait time for querying dns servers every x seconds")
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	dbHanlder := db.InitDBContext(connStr)
 	router := gin.Default()
 	router.Use(cors.Default())
@@ -40,7 +43,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go dnsapi.ContinuousUpdate(dbHanlder, timeDuration)
+
+	go dnsapi.ContinuousUpdate(ctx, dbHanlder, timeDuration)
 
 	router.Run(fmt.Sprintf(":%d", port))
 }
