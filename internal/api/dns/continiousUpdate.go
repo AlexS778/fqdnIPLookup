@@ -1,6 +1,7 @@
 package dnsapi
 
 import (
+	"context"
 	"errors"
 	"log"
 	"time"
@@ -11,27 +12,36 @@ import (
 	"gorm.io/gorm"
 )
 
-func ContinuousUpdate(db *gorm.DB, waitTime time.Duration) {
+func ContinuousUpdate(ctx context.Context, db *gorm.DB, waitTime time.Duration) {
 	for {
-		fqdns, err := getAllFQDNsFromDB(db)
-		if err != nil {
-			log.Println("Error fetching FQDNs from database:", err)
-		}
-
-		ipAdresses := make(map[string][]string)
-		for fqdn := range fqdns {
-			res, err := dnsutil.GetIPsByFQDN(fqdn)
-			if err != nil {
-				ipAdresses[fqdn] = []string{err.Error()}
-			} else {
-				ipAdresses[fqdn] = res
+		select {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				log.Printf("ContinuousUpdate err: %s\n", err)
 			}
+			log.Println("ContinuousUpdate: finished")
+			return
+		default:
+			fqdns, err := getAllFQDNsFromDB(db)
+			if err != nil {
+				log.Println("Error fetching FQDNs from database:", err)
+			}
+
+			ipAdresses := make(map[string][]string)
+			for fqdn := range fqdns {
+				res, err := dnsutil.GetIPsByFQDN(fqdn)
+				if err != nil {
+					ipAdresses[fqdn] = []string{err.Error()}
+				} else {
+					ipAdresses[fqdn] = res
+				}
+			}
+
+			res := utils.FindDifferentValues(fqdns, ipAdresses)
+			saveFQDNAndIPsToDatabase(db, res)
+
+			time.Sleep(waitTime)
 		}
-
-		res := utils.FindDifferentValues(fqdns, ipAdresses)
-		saveFQDNAndIPsToDatabase(db, res)
-
-		time.Sleep(waitTime)
 	}
 }
 
