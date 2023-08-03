@@ -15,16 +15,16 @@ services:
     networks:
       - fullstack
     environment:
-      connStr: "host=myDbPostgres user=CardExamAdmin password=password dbname=CardExam port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+      connStr: "host=myDbPostgres user=MyDbUser password=pass dbname=MyDb port=5432 sslmode=disable TimeZone=Asia/Shanghai"
       waitTime: "120s"
 
   myDbPostgres:
     image: postgres:latest
     container_name: myDb
     environment:
-      POSTGRES_DB: CardExam
-      POSTGRES_USER: CardExamAdmin
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: MyDb
+      POSTGRES_USER: MyDbUser
+      POSTGRES_PASSWORD: pass
     ports:
       - '5432:5432'
     volumes:
@@ -32,9 +32,30 @@ services:
     networks:
       - fullstack
 
+  migrate:
+    image: migrate/migrate
+    networks:
+      - fullstack
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://MyDbUser:pass@myDb:5432/MyDb?sslmode=disable",
+        "up"
+      ]
+    links:
+      - myDbPostgres:db
+    depends_on:
+      - myDbPostgres
+    restart: on-failure
+
 volumes:
   api:
   myDbPostgres:
+  migrate:
 
 
 networks:
