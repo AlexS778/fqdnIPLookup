@@ -69,7 +69,7 @@ func GetWHOISFromSLD(url string) (whoisparser.Domain, error) {
 		return whoisparser.Domain{}, fmt.Errorf("no second-leve domain found in url %s", url)
 	}
 
-	whoIsRaw, err := whois.Whois(sld + ".com")
+	whoIsRaw, err := whois.Whois(sld)
 	if err != nil {
 		return whoisparser.Domain{}, err
 	}
