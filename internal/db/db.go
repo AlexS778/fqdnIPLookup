@@ -1,18 +1,24 @@
 package db
 
 import (
+	"database/sql"
 	"log"
 
-	"github.com/AlexS778/fqdnIPLookup/internal/models"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func InitDBContext(connStr string) *gorm.DB {
-	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
+func InitDBContext(connStr string) *sql.DB {
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	db.AutoMigrate(&models.FQDN{}, &models.IP{})
+	//defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("Connected to db")
 	return db
 }

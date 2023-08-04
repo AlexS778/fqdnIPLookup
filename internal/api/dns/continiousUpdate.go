@@ -2,17 +2,15 @@ package dnsapi
 
 import (
 	"context"
-	"errors"
+	"database/sql"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/AlexS778/fqdnIPLookup/internal/dnsutil"
-	"github.com/AlexS778/fqdnIPLookup/internal/models"
-	"github.com/AlexS778/fqdnIPLookup/internal/utils"
-	"gorm.io/gorm"
 )
 
-func ContinuousUpdate(ctx context.Context, db *gorm.DB, waitTime time.Duration) {
+func ContinuousUpdate(ctx context.Context, db *sql.DB, waitTime time.Duration) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -22,80 +20,91 @@ func ContinuousUpdate(ctx context.Context, db *gorm.DB, waitTime time.Duration) 
 			log.Println("ContinuousUpdate: finished")
 			return
 		default:
-			fqdns, err := getAllFQDNsFromDB(db)
-			if err != nil {
-				log.Println("Error fetching FQDNs from database:", err)
-			}
+			fqdns := getAllFQDNsFromDB(db)
 
 			ipAdresses := make(map[string][]string)
-			for fqdn := range fqdns {
+			for _, fqdn := range fqdns {
 				res, err := dnsutil.GetIPsByFQDN(fqdn)
 				if err != nil {
 					ipAdresses[fqdn] = []string{err.Error()}
 				} else {
 					ipAdresses[fqdn] = res
+					saveFQDNAndIPsToDatabase(db, fqdn, ipAdresses[fqdn])
 				}
 			}
-
-			res := utils.FindDifferentValues(fqdns, ipAdresses)
-			saveFQDNAndIPsToDatabase(db, res)
 
 			time.Sleep(waitTime)
 		}
 	}
 }
 
-func getAllFQDNsFromDB(db *gorm.DB) (map[string][]string, error) {
-	var fqdns []models.FQDN
-	if err := db.Preload("IPs").Find(&fqdns).Error; err != nil {
-		return nil, err
+func getAllFQDNsFromDB(db *sql.DB) []string {
+	var fqdn string
+	var result []string
+	rows, err := db.Query("SELECT fqdn FROM fqdns")
+	if err != nil {
+		log.Println(err)
 	}
 
-	log.Printf("Found %d FQDN's in the database", len(fqdns))
+	defer rows.Close()
 
-	fqdnMap := make(map[string][]string, len(fqdns))
-	for _, fqdn := range fqdns {
-		fqdnMap[fqdn.FQDN] = []string{}
-		for _, IPs := range fqdn.IPs {
-			fqdnMap[fqdn.FQDN] = append(fqdnMap[fqdn.FQDN], IPs.Address)
+	for rows.Next() {
+		err := rows.Scan(&fqdn)
+		if err != nil {
+			log.Println(err)
 		}
+		result = append(result, fqdn)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Println(err)
 	}
 
-	return fqdnMap, nil
+	return result
 }
 
-func saveFQDNAndIPsToDatabase(db *gorm.DB, fqdnMap map[string][]string) {
-	rowsAffectedCounter := 0
-	for fqdn, ips := range fqdnMap {
-		var fqdnRecord models.FQDN
-		if err := db.Where("fqdn = ?", fqdn).First(&fqdnRecord).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Printf("FQDN %s not found in the database", fqdn)
-			}
-		}
+func saveFQDNAndIPsToDatabase(db *sql.DB, fqdn string, ips []string) {
+	insertFQDNStmt, err := db.Prepare("INSERT INTO fqdns(fqdn) VALUES ($1) ON CONFLICT (fqdn) DO NOTHING RETURNING id;")
+	if err != nil {
+		log.Println(err)
+	}
+	defer insertFQDNStmt.Close()
 
-		tx := db.Begin()
+	query := `
+		WITH ins AS (
+			INSERT INTO fqdns(fqdn) VALUES ($1) ON CONFLICT (fqdn) DO NOTHING RETURNING id
+		)
+		SELECT id FROM ins
+		UNION ALL
+		SELECT id FROM fqdns WHERE fqdn = $1;
+	`
 
-		for _, ip := range ips {
-			ipRecord := models.IP{
-				FQDNID:  fqdnRecord.ID,
-				Address: ip,
-			}
-			count := tx.Create(&ipRecord).RowsAffected
-			rowsAffectedCounter += int(count)
-		}
-
-		if tx.Error != nil {
-			tx.Rollback()
-			log.Println(tx.Error.Error())
-		}
-
-		tx.Commit()
+	var id int
+	err = db.QueryRow(query, fqdn).Scan(&id)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	if rowsAffectedCounter == 0 {
-		log.Printf("%d rows were affected, no new IP's found", rowsAffectedCounter)
-	} else {
-		log.Printf("%d rows were affected", rowsAffectedCounter)
+	fmt.Println("Inserted or existing row ID:", id)
+
+	insertIPsstmt, err := db.Prepare("INSERT INTO ips(fqdn_id, address) VALUES ($1, $2) ON CONFLICT DO NOTHING RETURNING ID;")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer insertIPsstmt.Close()
+
+	for _, v := range ips {
+		var newId int
+		err = insertIPsstmt.QueryRow(id, v).Scan(&newId)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				log.Println(err)
+			}
+
+			log.Printf("Row already exists with this ip: %s", v)
+		}
+		if newId != 0 {
+			fmt.Printf("Inserted row ID %d for IP: %s\n", newId, fqdn)
+		}
 	}
 }
