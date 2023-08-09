@@ -11,7 +11,7 @@
         }
     ],
     "paths": {
-        "/v1/FQDNToIP": {
+        "/v1/fqdntoip": {
             "post": {
                 "summary": "Get IP addresses from FQDNs",
                 "requestBody": {
@@ -62,7 +62,7 @@
                 }
             }
         },
-        "/v1/IPToFQDN": {
+        "/v1/iptofqdn": {
             "post": {
                 "summary": "Get FQDNs from IP addresses",
                 "requestBody": {
