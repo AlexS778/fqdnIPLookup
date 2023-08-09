@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/AlexS778/fqdnIPLookup/internal/dnsutil"
+	"github.com/AlexS778/fqdnIPLookup/models"
 	"github.com/gin-gonic/gin"
 )
 
@@ -59,14 +60,10 @@ func (h handler) GetWhoIsData(c *gin.Context) {
 		return
 	}
 
-	whoisData := make(map[string]interface{})
+	whoisData := make(map[string]models.WhoISDTO)
 	for _, sld := range slds {
-		res, err := dnsutil.GetWHOISFromSLD(sld)
-		if err != nil {
-			whoisData[sld] = err.Error()
-		} else {
-			whoisData[sld] = res
-		}
+		res := dnsutil.GetWHOISFromSLD(sld)
+		whoisData[sld] = res
 	}
 
 	c.JSON(200, whoisData)

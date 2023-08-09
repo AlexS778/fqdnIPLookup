@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/AlexS778/fqdnIPLookup/models"
 	"github.com/bobesa/go-domain-util/domainutil"
 	"github.com/likexian/whois"
 	whoisparser "github.com/likexian/whois-parser"
@@ -63,20 +64,43 @@ func GetFQDNsByIP(ipAdress string) ([]string, error) {
 	return names, nil
 }
 
-func GetWHOISFromSLD(url string) (whoisparser.Domain, error) {
+func GetWHOISFromSLD(url string) models.WhoISDTO {
+	whoISDTONew := models.WhoISDTO{}
 	sld := domainutil.DomainPrefix(url)
 	if sld == "" {
-		return whoisparser.Domain{}, fmt.Errorf("no second-leve domain found in url %s", url)
+		whoISDTONew.Error = fmt.Sprintf("no second-leve domain found in url %s", url)
+		return whoISDTONew
+
 	}
 
-	whoIsRaw, err := whois.Whois(sld + ".com")
+	whoIsRaw, err := whois.Whois(sld)
 	if err != nil {
-		return whoisparser.Domain{}, err
+		whoISDTONew.Error = err.Error()
+		return whoISDTONew
 	}
 
 	result, err := whoisparser.Parse(whoIsRaw)
 	if err != nil {
-		return whoisparser.Domain{}, err
+		whoISDTONew.Error = err.Error()
+		return whoISDTONew
 	}
-	return *result.Domain, nil
+
+	whoISDTONew.Domain = *result.Domain
+	if result.Registrar != nil {
+		whoISDTONew.Registrar = *result.Registrar
+	}
+	if result.Registrant != nil {
+		whoISDTONew.Registrant = *result.Registrant
+	}
+	if result.Administrative != nil {
+		whoISDTONew.Administrative = *result.Administrative
+	}
+	if result.Technical != nil {
+		whoISDTONew.Technical = *result.Technical
+	}
+	if result.Billing != nil {
+		whoISDTONew.Billing = *result.Billing
+	}
+
+	return whoISDTONew
 }

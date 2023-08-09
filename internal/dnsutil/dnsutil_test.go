@@ -29,12 +29,12 @@ func TestGetFQDNsByIP(t *testing.T) {
 
 func TestGetWHOISFromSLD(t *testing.T) {
 	tldDomain := ""
-	_, err := GetWHOISFromSLD(tldDomain)
-	assert.NotEqual(t, err, nil)
-	invalidSLD := "asdasdqweqweqwewqe.com"
-	_, err = GetWHOISFromSLD(invalidSLD)
-	assert.NotEqual(t, err, nil)
+	res := GetWHOISFromSLD(tldDomain)
+	assert.NotZero(t, res.Error)
+	invalidSLD := "asdasdqweqweqwewqeaasasdasd.com"
+	res = GetWHOISFromSLD(invalidSLD)
+	assert.NotZero(t, res.Error)
 	validSLD := "ads.yahoo.com"
-	_, err = GetWHOISFromSLD(validSLD)
-	assert.Equal(t, err, nil)
+	res = GetWHOISFromSLD(validSLD)
+	assert.Zero(t, res.Error)
 }

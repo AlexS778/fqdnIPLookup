@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS fqdns (
+    id SERIAL PRIMARY KEY,
+    fqdn VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ips (
+    id SERIAL PRIMARY KEY,
+    fqdn_id INTEGER,
+    address VARCHAR(255) UNIQUE,
+    FOREIGN KEY (fqdn_id) REFERENCES fqdns (id)
+);
